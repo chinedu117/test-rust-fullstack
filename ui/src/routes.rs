@@ -6,7 +6,7 @@ use crate::components::crud::list::CrudList;
 use crate::components::home::Home;
 use crate::components::auth::Auth;
 use crate::components::logout::Logout;
-use crate::models::users::{UiUser};
+use crate::models::users::{UserModel};
 
 
 #[derive(Clone, Routable, PartialEq)]
@@ -26,11 +26,10 @@ pub enum Route {
     NotFound,
 }
 
-pub fn switch(routes: Route) -> Html {    
-    let u = UiUser {};
+pub fn switch(routes: Route) -> Html {
     match routes {
         Route::Home => html! { <><Home /></> },        
-        Route::Users => html! { <CrudList<UiUser> url={"/users/"} title={"Users"} /> },
+        Route::Users => html! { <CrudList<UserModel> url={"/users/"} title={"Users"} /> },
         Route::NotFound => html! { <h1>{ "404" }</h1> },
         Route::Logout => html! { <Logout /> },
         Route::Login => {
