@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use yew::{prelude::*};
 use yew_bootstrap::component::{Line};
 use gloo_net::{http::{Method::GET}};
-use crate::{api::Client, UserContext, ErrorContext, stores::error::ErrorState};
+use crate::{api::Client, UserContext, ErrorContext, stores::error::{ErrorState, ErrorTypes}};
 use super::table::CrudTable;
 use gloo_console::log;
 
@@ -42,7 +42,7 @@ pub fn list<M>(props: &ItensProps) -> Html where
                         }
                         Err(err) => {                               
                             let s: Callback<ErrorState> = error_context.dispatch.reduce_callback(move |_| {
-                                let state = ErrorState { error: Some(err.to_string()) };
+                                let state = ErrorState { error: Some(err.to_string()), ty: Some(ErrorTypes::ApiError) };
                                 Rc::new(state)
                             });
                             s.emit(Default::default())
