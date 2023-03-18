@@ -6,9 +6,9 @@ use crate::AppState;
 use actix_web::{HttpResponse, ResponseError, Scope, web};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, IntoActiveModel};
 use sea_orm::ActiveValue::Set;
-use crate::models::prelude::User;
-use crate::models::user;
-use crate::models::user::ActiveModel;
+use shared_models::user;
+
+
 use crate::routes::crud::DefaultRoutes;
 use crate::services::jwt::{Claims};
 use crate::services::error_handler::{ApiError, ApiErrorType};
@@ -36,12 +36,12 @@ pub struct TokenResponse {
 pub struct AuthRoutes {}
 
 impl AuthRoutes {
-    async fn find_or_register(user: Claims, db: &DatabaseConnection) -> Result<ActiveModel, DbErr> {
-        match User::find().filter(user::Column::Username.contains(user.sub.as_str())).one(&db.clone()).await {
+    async fn find_or_register(user: Claims, db: &DatabaseConnection) -> Result<user::ActiveModel, DbErr> {
+        match user::Entity::find().filter(user::Column::Username.contains(user.sub.as_str())).one(&db.clone()).await {
             Ok(result) => {
                 match result {
                     None => {
-                        let model = ActiveModel {
+                        let model = user::ActiveModel {
                             id: Default::default(),
                             username: Set(user.sub),
                             service: Set("google".to_string()),

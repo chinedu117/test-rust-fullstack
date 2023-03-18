@@ -2,9 +2,8 @@ extern crate log;
 
 mod services;
 mod routes;
-mod models;
 
-use crate::routes::crud::{CrudRoutes, DefaultRoutes};
+use crate::routes::crud::{DefaultRoutes};
 use crate::routes::auth::AuthRoutes;
 
 use actix_web::{App, HttpServer, Responder, HttpResponse, options};

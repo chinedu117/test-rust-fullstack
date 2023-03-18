@@ -1,2 +1,7 @@
 [workspace]
-members = ["api", "ui", "shared_models"]
+members = ["api", "ui", "shared_models", "macros"]
+
+
+[alias]
+ra = ["cargo run -p api"]
+ru = ["cd ui && ~/.cargo/bin/trunk serve -w ."]

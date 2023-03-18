@@ -2,14 +2,11 @@ mod components;
 mod stores;
 mod api;
 mod routes;
-mod models;
-
-
 use yew_router::prelude::*;
 use yew_bootstrap::util::*;
 use yew_bootstrap::component::{Row, Column};
 use yewdux::prelude::{use_store, Dispatch};
-use crate::components::main_menu::MainMenu;
+use crate::components::common::main_menu::MainMenu;
 use crate::routes::{Route, switch};
 use crate::stores::user::UserState;
 use yew::{function_component, html, Html, ContextProvider, Properties};

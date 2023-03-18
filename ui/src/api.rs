@@ -7,39 +7,57 @@ use yewdux::prelude::Dispatch;
 use crate::stores::user::UserState;
 use web_sys::window;
 
-pub struct Api {}
 
-impl Api {
-    pub async fn send_request(url: &String, method: Method, body: Option<JsValue>, 
-        state: UserState, dispatch: Dispatch<UserState>) -> Result<Response, Error> {        
-        let token = &state.token;
-        let req = Request::new(format!("http://localhost:3000{}", url).as_str())
-        .method(method)                
-        .header("Authorization", &format!("Bearer {}", token).to_string());
-        let req = match method {
+pub struct Client {
+    pub url: String,
+    pub method: Method,
+    pub body: Option<JsValue>,
+    pub state: UserState,
+    pub dispatch: Dispatch<UserState>
+}
+
+impl Client {
+
+    fn add_body(&self, req: Request) -> Request {
+        match self.method {
             Method::GET => req,
             Method::HEAD => req,
-            Method::POST => req.body(body.unwrap()),
+            Method::POST => req.body(self.body.clone().unwrap()),
             Method::PUT => req,
             Method::DELETE => req,
             Method::CONNECT => req,
             Method::OPTIONS => req,
             Method::TRACE => req,
-            Method::PATCH => req.body(body.unwrap()),
-        };
+            Method::PATCH => req.body(self.body.clone().unwrap()),
+        }
+    }
+
+    fn create_request(&self) -> Request {
+        let token = &self.state.token;
+        let req = Request::new(format!("http://localhost:3000{}", self.url).as_str())
+            .method(self.method)
+            .header("Authorization", &format!("Bearer {}", token).to_string());
+        req
+    }
+
+    fn handle_unauth(&self) -> Result<Response, Error> {
+        let cb: Callback<UserState> = self.dispatch.reduce_mut_callback(move |state| {
+            state.logged = false;
+            state.token = Default::default();
+        });
+        cb.emit(Default::default());
+        let location = window().expect_throw("window is undefined").location();
+        location.set_href("http://localhost:8080/auth/logout").unwrap();
+        Err(Error::GlooError("Not Authorized".to_string()))
+    }
+
+    pub async fn send_request(&self) -> Result<Response, Error> {        
+        let req = self.create_request();
+        let req = self.add_body(req);
         match req.send().await {
             Ok(res) => {
                 match res.status() {
-                    401 => {
-                        let cb: Callback<UserState> = dispatch.reduce_mut_callback(move |state| {
-                            state.logged = false;
-                            state.token = Default::default();
-                        });
-                        cb.emit(Default::default());
-                        let location = window().expect_throw("window is undefined").location();
-                        location.set_href("http://localhost:8080/auth/logout").unwrap();
-                        Err(Error::GlooError("Not Authorized".to_string()))
-                    }
+                    401 => { self.handle_unauth() }
                     _ => Ok(res)
                 }
             },

@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use yew::{prelude::*};
 use yew_bootstrap::component::{Line};
 use gloo_net::{http::{Method::GET}};
-use crate::{api::Api, components::error::{ErrorToast}, UserContext};
-use crate::components::table::CrudTable;
+use crate::{api::Client, components::common::error::{ErrorToast}, UserContext};
+use super::table::CrudTable;
 use gloo_console::log;
 
 #[derive(Properties, PartialEq, Clone)]
@@ -31,8 +31,9 @@ pub fn list<M>(props: &ItensProps) -> Html where
             use_effect_with_deps(move |_| {                
                 let props = props.clone();                
                 wasm_bindgen_futures::spawn_local(async move {
-                    let resp = Api::send_request(&props.url, GET, None, 
-                        user_context.state.clone(), user_context.dispatch.clone()).await;
+                    let client = Client {url: props.url.clone(), method: GET, body: None,
+                        state: user_context.state.clone(), dispatch: user_context.dispatch.clone() };
+                    let resp = client.send_request().await;
                     log!("Requesting API...");
                     match resp {
                         Ok(res) => {

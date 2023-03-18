@@ -17,8 +17,7 @@ pub struct ApiError {
 #[derive(Debug)]
 pub enum ApiErrorType {
     InternalError,
-    BadClientData,
-    Timeout,
+    BadClientData,    
     NotFound
 }
 
@@ -42,8 +41,7 @@ impl error::ResponseError for ApiError {
                 match kind {
                     ApiErrorType::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
                     ApiErrorType::BadClientData => StatusCode::BAD_REQUEST,
-                    ApiErrorType::NotFound => StatusCode::NOT_FOUND,
-                    ApiErrorType::Timeout => StatusCode::GATEWAY_TIMEOUT
+                    ApiErrorType::NotFound => StatusCode::NOT_FOUND
                 }
             }
         }
