@@ -8,7 +8,6 @@ pub fn create_functions(input: TokenStream) -> TokenStream {
     let struct_name = input.ident;
 
     let output = quote! {
-
         impl #struct_name {
             fn default_err(err: DbErr) -> HttpResponse {
                 ApiError { kind: ApiErrorType::BadClientData, msg: err.to_string() }.error_response()
@@ -94,17 +93,6 @@ pub fn create_functions(input: TokenStream) -> TokenStream {
                 }
             }
         }
-        impl DefaultRoutes for #struct_name {
-            fn export_routes() -> Scope {
-                web::scope("/users")
-                    .route("/", web::get().to(Self::list))
-                    .route("/", web::post().to(Self::create))
-                    .route("/{id}/", web::delete().to(Self::delete))
-                    .route("/{id}/", web::get().to(Self::get))
-                    .route("/{id}/", web::patch().to(Self::update))
-
-            }
-        }
     };
     TokenStream::from(output)
 }
@@ -113,23 +101,34 @@ pub fn create_functions(input: TokenStream) -> TokenStream {
 pub fn create_models(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    // Get the name of the struct being derived on    
-
-    // Get the fields of the struct being derived on
     let fields = match input.data {        
         Data::Struct(data_struct) => data_struct.fields,
         _ => panic!("This macro can only be used on structs!"),
     };
 
     let mut field_code = Vec::new();
-        fields.iter().for_each(|field| {
-            let field_name = field.ident.as_ref().unwrap();
-            let field_type = &field.ty;
+    fields.iter().for_each(|field| {
+        let field_name = field.ident.as_ref().unwrap();
+        let field_type = &field.ty;        
+        field_code.push(quote! {
+            pub #field_name : #field_type,
+        });
+    });
 
-            field_code.push(quote! {
+    
+
+    let mut field_code_without_id = Vec::new();
+     fields.iter().for_each(|field| {
+        let field_name = field.ident.as_ref().unwrap();
+        let field_type = &field.ty;        
+        if field_name.to_string() != "id" {
+            field_code_without_id.push(quote! {
                 pub #field_name : #field_type,
             });
+        }            
     });
+
+    
 
     let struct_name = input.ident;
 
@@ -137,6 +136,13 @@ pub fn create_models(input: TokenStream) -> TokenStream {
         &format!("{}{}", struct_name, "Ui"),
         struct_name.span()
     );
+
+    let lower_case_name = syn::Ident::new(
+        &struct_name.to_string().to_lowercase(),
+        struct_name.span()
+    );
+
+    let table_name = format!("{}", lower_case_name);
     
     let expanded = quote! {
         #[derive(PartialEq, Deserialize, Serialize, Default, Properties, Clone, Reflect)]
@@ -145,19 +151,16 @@ pub fn create_models(input: TokenStream) -> TokenStream {
         }
             
         #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
-        #[sea_orm(table_name = "user")]
+        #[sea_orm(table_name = #table_name)]
         pub struct Model {
             #[sea_orm(primary_key)]
             #(#field_code)*
         }
         #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, DeriveIntoActiveModel)]
         pub struct ModelWithoutId {
-            #(#field_code)*
+            #(#field_code_without_id)*
         }
-        #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-        pub enum Relation {}
-
-        impl ActiveModelBehavior for ActiveModel {}         
+                
 
     };
     TokenStream::from(expanded)

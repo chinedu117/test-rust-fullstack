@@ -5,6 +5,6 @@ use serde::{Serialize, Deserialize};
 #[store(storage = "local")]
 pub struct UserState {
     pub logged: bool,
-    pub token: String
+    pub token: Option<String>
 }
 

@@ -33,11 +33,11 @@ impl Client {
     }
 
     fn create_request(&self) -> Request {
-        let token = &self.state.token;
-        let req = Request::new(format!("http://localhost:3000{}", self.url).as_str())
+        let token = &self.state.token.clone().unwrap();
+        Request::new(format!("http://localhost:3000{}", self.url).as_str())
             .method(self.method)
-            .header("Authorization", &format!("Bearer {}", token).to_string());
-        req
+            .header("Authorization", &format!("Bearer {}", token).to_string())
+        
     }
 
     fn handle_unauth(&self) -> Result<Response, Error> {

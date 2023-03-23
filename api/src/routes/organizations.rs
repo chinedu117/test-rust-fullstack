@@ -1,5 +1,5 @@
 use macros::GenerateCrudRoutes;
-use shared_models::user::{Entity, ActiveModel, ModelWithoutId, Column};
+use shared_models::organization::{Entity, ActiveModel, ModelWithoutId, Column};
 use actix_web::{HttpResponse, ResponseError, Scope, web};
 use actix_web::http::StatusCode;
 use sea_orm::{ActiveModelTrait, DbErr, EntityOrSelect, EntityTrait, IntoActiveModel, Value};
@@ -9,11 +9,11 @@ use crate::services::error_handler::{ApiError, ApiErrorType};
 use super::crud::DefaultRoutes;
 
 #[derive(GenerateCrudRoutes)]
-pub struct UserRoutes {}
+pub struct OrganizationRoutes {}
 
-impl DefaultRoutes for UserRoutes {
+impl DefaultRoutes for OrganizationRoutes {
     fn export_routes() -> Scope {
-        web::scope("/users")
+        web::scope("/organizations")
             .route("/", web::get().to(Self::list))
             .route("/", web::post().to(Self::create))
             .route("/{id}/", web::delete().to(Self::delete))
@@ -22,4 +22,3 @@ impl DefaultRoutes for UserRoutes {
 
     }    
 }
-

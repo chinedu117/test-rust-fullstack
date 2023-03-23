@@ -1,27 +1,25 @@
-
-
 extern crate log;
 extern crate dotenv;
-
 
 mod services;
 mod routes;
 mod env_config;
 
-use crate::routes::crud::{DefaultRoutes};
-use crate::routes::auth::AuthRoutes;
-
 use dotenv::dotenv;
 use actix_web::{App, HttpServer};
 use actix_web::middleware::Logger;
 use actix_cors::Cors;
-use services::database_client::DatabaseClient;
-use services::google_auth::GoogleAuth;
-use routes::users::UserRoutes;
 use env_logger;
 use sea_orm::{DatabaseConnection, DbErr};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use env_config::Config;
+
+use services::database_client::DatabaseClient;
+use services::google_auth::GoogleAuth;
+use routes::users::UserRoutes;
+use routes::organizations::OrganizationRoutes;
+use routes::crud::DefaultRoutes;
+use routes::auth::AuthRoutes;
 
 pub struct AppState {
     db: DatabaseConnection,
@@ -59,13 +57,13 @@ async fn main() -> std::io::Result<()> {
             .max_age(3600);
         let auth = HttpAuthentication::bearer(AuthRoutes::bearer_auth_validator);
         let config = Config::init();
-        println!("JWT SECRET: {}", config.jwt_secret);
         App::new()
             .wrap(Logger::default())                        
             .wrap(cors)
             .data_factory(move || { create_state(config.clone()) })                     
             .service(AuthRoutes::export_routes())
-            .service( UserRoutes::export_routes().wrap(auth))
+            .service(UserRoutes::export_routes().wrap(auth.clone()))
+            .service(OrganizationRoutes::export_routes().wrap(auth.clone()))
     })
         .bind(("0.0.0.0", 3000))?
         .run()

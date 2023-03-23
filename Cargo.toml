@@ -1,5 +1,5 @@
 [workspace]
-members = ["api", "ui", "shared_models", "macros"]
+members = ["api", "ui", "shared_models", "macros", "migration"]
 
 
 [alias]
