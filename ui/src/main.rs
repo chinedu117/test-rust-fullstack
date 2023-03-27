@@ -4,7 +4,9 @@ mod api;
 mod routes;
 mod contexts;
 
-use crate::contexts::{UserContext, ErrorContext};
+
+
+use crate::contexts::{UserContext, MessageContext};
 use crate::routes::{Route};
 use crate::components::app::App;
 

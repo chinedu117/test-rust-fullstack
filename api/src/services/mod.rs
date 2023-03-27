@@ -1,4 +1,4 @@
-pub mod database_client;
-pub mod google_auth;
-pub mod jwt;
+pub mod database;
+pub mod google_oauth;
+pub mod auth;
 pub mod error_handler;

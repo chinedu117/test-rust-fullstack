@@ -1,71 +1,56 @@
-extern crate log;
 extern crate dotenv;
 
+mod config;
 mod services;
 mod routes;
-mod env_config;
 
+use axum::Router;
+use std::net::SocketAddr;
+use tower_http::cors::CorsLayer;
+use crate::config::Config;
+use crate::services::database::{DatabaseClient};
+use crate::services::google_oauth::GoogleAuth;
+use sea_orm::{DatabaseConnection};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use dotenv::dotenv;
-use actix_web::{App, HttpServer};
-use actix_web::middleware::Logger;
-use actix_cors::Cors;
-use env_logger;
-use sea_orm::{DatabaseConnection, DbErr};
-use actix_web_httpauth::middleware::HttpAuthentication;
-use env_config::Config;
+use crate::routes::auth::AuthRoutes;
+use crate::routes::resource_routes::ResourceRoutes;
+use crate::routes::users::UserRoutes;
+use crate::routes::organizations::OrganizationRoutes;
 
-use services::database_client::DatabaseClient;
-use services::google_auth::GoogleAuth;
-use routes::users::UserRoutes;
-use routes::organizations::OrganizationRoutes;
-use routes::crud::DefaultRoutes;
-use routes::auth::AuthRoutes;
-
+#[derive(Debug, Clone)]
 pub struct AppState {
     db: DatabaseConnection,
     oauth: GoogleAuth
 }
 
-impl Clone for AppState {
-    fn clone(&self) -> Self {
-        let cloned = self.to_owned();
-        Self {db: cloned.db, oauth: cloned.oauth}
-    }
-}
-
-async fn create_state(config: Config) -> Result<AppState, DbErr> {
-    let db_client = DatabaseClient::new(config.db_url);
-    match db_client.create_pool().await {
-        Ok(db) => {
-            let oauth = GoogleAuth::new();            
-            Ok(AppState {db, oauth})
-        }
-        Err(err) => {
-            Err(err)
-        }
-    }
-}
-
-#[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    std::env::set_var("RUST_LOG", "debug");
-    env_logger::init();
+#[tokio::main]
+async fn main() {
     dotenv().ok();
-    println!("Server starting in port 3000");
-    HttpServer::new( move || {
-        let cors = Cors::permissive()
-            .max_age(3600);
-        let auth = HttpAuthentication::bearer(AuthRoutes::bearer_auth_validator);
-        let config = Config::init();
-        App::new()
-            .wrap(Logger::default())                        
-            .wrap(cors)
-            .data_factory(move || { create_state(config.clone()) })                     
-            .service(AuthRoutes::export_routes())
-            .service(UserRoutes::export_routes().wrap(auth.clone()))
-            .service(OrganizationRoutes::export_routes().wrap(auth.clone()))
-    })
-        .bind(("0.0.0.0", 3000))?
-        .run()
-        .await
+    tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).init();
+    let config = Config::init();
+    let db_client = DatabaseClient::new(config.db_url);
+    let db_pool = db_client.create_pool().await.expect("Failed to create database pool");
+    let app_state = AppState {db: db_pool.clone(), oauth: GoogleAuth::new() };
+    let auth_routes = AuthRoutes::export_routes(app_state.clone());
+    let user_routes = UserRoutes::export_routes(app_state.clone());
+    let org_routes = OrganizationRoutes::export_routes(app_state.clone());
+    let app = Router::new()
+        .merge(auth_routes)
+        .merge(user_routes)
+        .merge(org_routes)
+        .layer(CorsLayer::permissive());
+
+    serve(app, config.app_port).await;
+
 }
+
+async fn serve(app: Router, port: u16) {
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+

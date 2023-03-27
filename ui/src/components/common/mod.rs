@@ -1,2 +1,1 @@
-pub mod main_menu;
-pub mod error_toast;
+pub mod messages;

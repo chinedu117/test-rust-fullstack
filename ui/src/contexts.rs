@@ -1,7 +1,7 @@
 use yewdux::prelude::Dispatch;
 use yew::Properties;
 
-use crate::stores::{user::UserState, error::ErrorStateList};
+use crate::stores::{user::UserState, messages::MessageStateList};
 
 #[derive(Clone, Default, Properties, PartialEq)]
 pub struct UserContext {
@@ -11,7 +11,7 @@ pub struct UserContext {
 
 
 #[derive(Clone, Default, Properties, PartialEq)]
-pub struct ErrorContext {
-    pub states: ErrorStateList,
-    pub dispatch: Dispatch<ErrorStateList>
+pub struct MessageContext {
+    pub states: MessageStateList,
+    pub dispatch: Dispatch<MessageStateList>
 }

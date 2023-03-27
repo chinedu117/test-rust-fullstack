@@ -3,12 +3,14 @@ use serde::{Serialize};
 use serde_json::{Value};
 use yew::{prelude::*};
 use gloo_console::log;
-
+use ybc::TileCtx::{Parent};
+use ybc::TileSize::Twelve;
 
 
 #[derive(Properties, PartialEq, Clone)]
 pub struct ListProps<M: Properties + PartialEq> {
-        pub list: Vec<M>
+        pub list: Vec<M>,
+        pub delete_cb: Callback<String>
 
 }
 
@@ -45,16 +47,24 @@ pub fn table<M>(props: &ListProps<M>) -> Html
                         }
                     })
                     .collect();
+                let delete_cb = props.delete_cb.clone();
                 html! {
                     <tr>
-                        {fields}                        
+                        {fields}
+                        <td>
+                            <ybc::Dropdown>
+                                <a onclick={move |_| delete_cb.emit(generic[&"id".to_string()].to_string()) }>{"Delete"}</a>
+                            </ybc::Dropdown>
+                        </td>                                        
                     </tr>
                 }
             })
             .collect::<Html>();
         html! {
-            <table class={"table table-dark"}>
-                {rows.clone()}
-            </table>
+            <ybc::Tile ctx={Parent} vertical=true size={Twelve}>
+                    <table class={"table is-bordered"}>
+                        {rows.clone()}
+                    </table>
+            </ybc::Tile> 
         }                
     }

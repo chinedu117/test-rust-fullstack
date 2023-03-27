@@ -1,11 +1,9 @@
-use std::fmt::{Debug, Display, Formatter, Result};
-use actix_web::{error, http::{StatusCode}, HttpResponse, };
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize, Deserialize)]
-pub struct JsonFormatedError {
-    error: String
-}
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
+use serde_json::json;
 
 #[derive(Debug)]
 pub struct ApiError {
@@ -17,33 +15,28 @@ pub struct ApiError {
 #[derive(Debug)]
 pub enum ApiErrorType {
     InternalError,
-    BadClientData,    
+    BadClientData,
+    Unauthorized,
     NotFound
 }
 
-impl Display for ApiError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{:?}", self)
-    }
-}
-
-impl error::ResponseError for ApiError {
-    fn error_response(&self) -> HttpResponse {
-        let formatted_error = JsonFormatedError { error: self.msg.clone() };
-        HttpResponse::build(self.status_code())
-            .json(formatted_error)
-    }
-
-    fn status_code(&self) -> StatusCode {
-        let cloned = self.clone();
-        match cloned {
-            ApiError { kind, msg: _ } => {
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        let (status, error_message) = match self {
+            ApiError { msg, kind } => {
                 match kind {
-                    ApiErrorType::InternalError => StatusCode::INTERNAL_SERVER_ERROR,
-                    ApiErrorType::BadClientData => StatusCode::BAD_REQUEST,
-                    ApiErrorType::NotFound => StatusCode::NOT_FOUND
+                    ApiErrorType::InternalError => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+                    ApiErrorType::BadClientData => (StatusCode::BAD_REQUEST, msg),
+                    ApiErrorType::NotFound => (StatusCode::NOT_FOUND, msg),
+                    ApiErrorType::Unauthorized => (StatusCode::UNAUTHORIZED, msg)
                 }
             }
-        }
+        };
+
+        let body = Json(json!({
+            "error": error_message,
+        }));
+
+        (status, body).into_response()
     }
 }
