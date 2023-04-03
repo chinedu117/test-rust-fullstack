@@ -4,7 +4,9 @@ mod config;
 mod services;
 mod routes;
 
-use axum::Router;
+
+use axum::{Router, middleware};
+use services::auth::BearerAuth;
 use std::net::SocketAddr;
 use tower_http::cors::CorsLayer;
 use crate::config::Config;
@@ -29,12 +31,12 @@ async fn main() {
     dotenv().ok();
     tracing_subscriber::registry().with(tracing_subscriber::fmt::layer()).init();
     let config = Config::init();
-    let db_client = DatabaseClient::new(config.db_url);
-    let db_pool = db_client.create_pool().await.expect("Failed to create database pool");
+    let db_pool = DatabaseClient::init(config.db_url).await.expect("Failed to connect to database");    
     let app_state = AppState {db: db_pool.clone(), oauth: GoogleAuth::new() };
-    let auth_routes = AuthRoutes::export_routes(app_state.clone());
-    let user_routes = UserRoutes::export_routes(app_state.clone());
-    let org_routes = OrganizationRoutes::export_routes(app_state.clone());
+    let auth = middleware::from_extractor::<BearerAuth>();
+    let auth_routes = AuthRoutes::export_routes(app_state.clone(), auth.clone());
+    let user_routes = UserRoutes::export_routes(app_state.clone(), auth.clone());
+    let org_routes = OrganizationRoutes::export_routes(app_state.clone(), auth.clone());
     let app = Router::new()
         .merge(auth_routes)
         .merge(user_routes)

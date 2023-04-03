@@ -1,14 +1,13 @@
-use yew::prelude::*;
-use yewdux::prelude::*;
-use crate::stores::user::UserState;
+use leptos::*;
+use crate::services::localstorage::UserContext;
 
-#[function_component(Home)]
-pub fn home() -> Html {
-    let logged = use_selector(|state: &UserState| state.logged.clone());
-    html! {
-        <div>
-            <h1>{ "Home" }</h1>
-            <h3>{logged}</h3>
+#[component]
+pub fn Home(cx: Scope) -> impl IntoView {
+    let user_state = use_context::<ReadSignal<UserContext>>(cx).clone().unwrap();
+    view! {cx,
+        <div class="col-12">
+            <h1>"Home"</h1>
+            <p>{format!("Logged: {}", user_state.get().state.logged)}</p>
         </div>
     }
 }

@@ -11,6 +11,12 @@ pub struct ApiError {
     pub(crate) msg: String
 }
 
+impl ApiError {
+    pub fn create_response(kind: ApiErrorType, msg: String) -> Response {
+        Self { kind, msg }.into_response()
+    }
+}
+
 
 #[derive(Debug)]
 pub enum ApiErrorType {

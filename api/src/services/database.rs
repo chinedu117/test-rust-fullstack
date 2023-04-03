@@ -7,11 +7,14 @@ pub struct DatabaseClient {
 }
 
 impl DatabaseClient {
-    pub fn new(url: String) -> Self {
-        Self {url: url}
+
+     pub async fn init(url: String) -> Result<DatabaseConnection, DbErr> {
+        let new = Self {url};
+        new.create_pool().await
     }
 
-    pub async fn create_pool(&self) -> Result<DatabaseConnection, DbErr> {
+    
+    async fn create_pool(&self) -> Result<DatabaseConnection, DbErr> {
         let mut opt = ConnectOptions::new(self.url.to_owned());
         opt.max_connections(100)
             .min_connections(5)

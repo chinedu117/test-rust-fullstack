@@ -1,56 +1,55 @@
+use leptos::*;
+use leptos_router::*;
 use shared_models::organization::OrganizationUi;
 use shared_models::user::UserUi;
-use wasm_bindgen::UnwrapThrowExt;
-use web_sys::window;
-use yew::{html, Html};
-use yew_router::prelude::*;
-use crate::components::crud::list::CrudList;
-use crate::components::home::Home;
-use crate::components::auth::Auth;
-use crate::components::logout::Logout;
-use crate::components::forms::organization::OrganizationForm;
 
+use crate::components::home::{Home, HomeProps};
+use crate::components::crud::{Crud, CrudProps};
+use crate::components::auth::{Auth, AuthProps};
+use crate::components::logout::{Logout, LogoutProps};
+use crate::components::login::{Login, LoginProps};
 
+#[component]
+pub fn AppRouter(cx: Scope) -> impl IntoView {            
+    view! { cx,
+        <main>
+            <Routes>
+                <Route
+                    path=""
+                    view=move |cx| view! { cx,  <Home /> }
+                />
+                    
+                <Route
+                    path="users"
+                    view=move |cx| view! { cx,  
+                        <Crud _model={UserUi::default()} 
+                            url={"/users/".to_string()} 
+                            title={"Users".to_string()} /> 
+                    }
+                /> 
 
-#[derive(Clone, Routable, PartialEq)]
-pub enum Route {
-    #[at("/")]
-    Home,    
-    #[at("/users")]
-    Users,
-    #[at("/organizations")]
-    Organizations,
-    #[at("/auth/logout")]
-    Logout,
-    #[at("/auth/login")]
-    Login,
-    #[at("/auth/:token")]
-    AuthToken {token: String },
-    #[not_found]
-    #[at("/404")]
-    NotFound,
-}
+                <Route
+                    path="organizations"
+                    view=move |cx| view! { cx,  
+                        <Crud _model={OrganizationUi::default()} 
+                            url={"/organizations/".to_string()} 
+                            title={"Organizations".to_string()} /> 
+                    }
+                /> 
 
-pub fn switch(routes: Route) -> Html {
-    let organization_form = html! { <OrganizationForm /> };
-    match routes {
-        Route::Home => html! { <><Home /></> },        
-        Route::Users => html! { <CrudList<UserUi> url={"/users/"} title={"Users"} /> },
-        Route::Organizations => html! { <CrudList<OrganizationUi> url={"/organizations/"} title={"Organizations"} form={organization_form} /> },
-        Route::NotFound => html! { <h1>{ "404" }</h1> },
-        Route::Logout => html! { <Logout /> },
-        Route::Login => {
-            let location = window()
-                .expect_throw("window is undefined")
-                .location();
-            match location.set_href("http://localhost:3000/auth/login") {
-                Ok(_) => html! {<></>},
-                Err(_) => html! {<>{"Cannot redirect to login"}</>},
-            }
-            
-        },
-        Route::AuthToken { token } => html! {<Auth token={token} /> }
+                <Route
+                    path="auth/:token"
+                    view=move |cx| view! { cx,  <Auth /> }
+                />
+                <Route
+                    path="logout"
+                    view=move |cx| view! { cx,  <Logout /> }
+                />
+                <Route
+                    path="login"
+                    view=move |cx| view! { cx,  <Login /> }
+                />                    
+            </Routes>
+        </main>
     }
 }
-
-

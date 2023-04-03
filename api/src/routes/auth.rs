@@ -1,4 +1,5 @@
 use axum::extract::{Query, State};
+use axum::middleware::FromExtractorLayer;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::Router;
 use axum::routing::get;
@@ -7,7 +8,7 @@ use crate::routes::resource_routes::ResourceRoutes;
 use serde::{Deserialize, Serialize};
 use crate::config::Config;
 use oauth2::{AuthorizationCode};
-use crate::services::auth::{Claims};
+use crate::services::auth::{BearerAuth, Claims};
 use shared_models::user;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, IntoActiveModel};
 use sea_orm::ActiveValue::Set;
@@ -24,13 +25,11 @@ pub struct OAuthCallbackParams {
 pub struct AuthRoutes;
 
 impl AuthRoutes {
+    
     fn default_error(msg: String) -> Response {
-       let error =  ApiError {
-            kind: ApiErrorType::InternalError,
-            msg
-        };
-        error.into_response()
+        ApiError::create_response(ApiErrorType::InternalError, msg)       
     }
+
     async fn find_or_register(user: Claims, db: &DatabaseConnection) -> Result<user::ActiveModel, DbErr> {
         match user::Entity::find().filter(user::Column::Username.contains(user.sub.as_str())).one(&db.clone()).await {
             Ok(result) => {
@@ -73,7 +72,7 @@ impl AuthRoutes {
                         let claim = Claims {
                             id: profile.id.to_string(),
                             sub: profile.email.to_string(),
-                            app: "actix".to_string(),
+                            app: "api".to_string(),
                             exp: 10000000000,
                             secret: config.jwt_secret
                         };
@@ -100,7 +99,7 @@ impl AuthRoutes {
 }
 
 impl ResourceRoutes for AuthRoutes {
-    fn export_routes(state: AppState) -> Router {
+    fn export_routes(state: AppState, _auth: FromExtractorLayer<BearerAuth, ()>) -> Router {
         Router::new()
             .route("/auth/login", get(Self::login)).with_state(state.clone())
             .route("/auth/google/callback", get(Self::callback)).with_state(state.clone())

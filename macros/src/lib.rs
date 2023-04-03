@@ -2,101 +2,6 @@ use proc_macro::{TokenStream};
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput};
 
-#[proc_macro_derive(GenerateCrudRoutes)]
-pub fn create_functions(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-    let struct_name = input.ident;
-
-    let output = quote! {
-        impl #struct_name {
-            fn default_err(err: DbErr) -> HttpResponse {
-                ApiError { kind: ApiErrorType::BadClientData, msg: err.to_string() }.error_response()
-            }
-
-            async fn list(data: web::Data<AppState>) -> HttpResponse {
-                match Entity.select().all(&data.db).await {
-                    Ok(list) => { HttpResponse::Ok().json(list) }
-                    Err(err) => Self::default_err(err)
-                }
-            }
-
-            async fn get(path: web::Path<(i32,)>, data: web::Data<AppState>) -> HttpResponse {
-                let id: i32 = path.into_inner().0;
-                match  Entity::find_by_id(id).one(&data.db).await {
-                    Ok(record) => {
-                        match record {
-                            None => ApiError { kind: ApiErrorType::NotFound, msg: "".to_string() }.error_response(),
-                            Some(r) => HttpResponse::Ok().json(r)
-                        }
-                    }
-                    Err(err) => Self::default_err(err)
-                }
-            }
-
-            async fn update(path: web::Path<(i32,)>, record: web::Json<ModelWithoutId>, data: web::Data<AppState>) -> HttpResponse {
-                let id: i32 = path.into_inner().0;
-                match Entity::find_by_id(id).one(&data.db).await {
-                    Ok(u) => {
-                        match u {
-                            None => ApiError { kind: ApiErrorType::NotFound, msg: "".to_string() }.error_response(),
-                            Some(_) => {
-                                let mut updated_record = record.into_inner().clone().into_active_model();
-                                updated_record.set(Column::Id, Value::Int(Some(id)));
-                                match updated_record.save(&data.db).await {
-                                    Ok(_) => HttpResponse::Ok().status(StatusCode::ACCEPTED).json(""),
-                                    Err(err) => Self::default_err(err)
-                                }
-                            }
-                        }
-
-                    },
-                    Err(err) => {
-                        return Self::default_err(err);
-                    }
-                }
-            }
-
-            async fn delete(path: web::Path<(i32,)>, data: web::Data<AppState>) -> HttpResponse {
-                let id: i32 = path.into_inner().0;
-                match Entity::find_by_id(id).one(&data.db).await {
-                    Ok(r) => {
-                        match r {
-                            None => Self::default_err(DbErr::Custom(format!("Cound not find id: {}", id).to_string())),
-                            Some(v) => {
-                                let m: ActiveModel  = v.into();
-                                match m.delete(&data.db).await {
-                                    Ok(_) => HttpResponse::Ok().status(StatusCode::ACCEPTED).body(""),
-                                    Err(err) => Self::default_err(err)
-                                }
-                            }
-                        }
-                    }
-                    Err(err) => Self::default_err(err)
-                }
-            }
-
-            async fn create(record: web::Json<ModelWithoutId>, data: web::Data<AppState>) -> HttpResponse {
-                let new_record = record.into_inner().into_active_model();
-                match new_record.save(&data.db).await {
-                    Ok(r) => {
-                        match r.get_primary_key_value() {
-                            None =>  HttpResponse::Ok().json(""),
-                            Some(id) => {
-                                match id {
-                                    ValueTuple::One(i) =>  HttpResponse::Ok().json(i.to_string()),
-                                    _ => HttpResponse::Ok().json("")
-                                }
-                            }
-                        }
-                    },
-                    Err(err) => Self::default_err(err)
-                }
-            }
-        }
-    };
-    TokenStream::from(output)
-}
-
 #[proc_macro_derive(CrudRoutes)]
 pub fn create_routes(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -110,11 +15,12 @@ pub fn create_routes(input: TokenStream) -> TokenStream {
         use sea_orm::{ActiveModelTrait, DbErr, EntityOrSelect, EntityTrait, IntoActiveModel, Value};
         use sea_orm::sea_query::ValueTuple;
         use crate::services::error_handler::{ApiError, ApiErrorType};
+        
         impl #struct_name {
             async fn list(State(state): State<AppState>) -> impl IntoResponse {
                 let list = Entity.select().all(&state.db).await;
                 match list {
-                    Ok(list) => {
+                    Ok(list) => {                        
                         Json(list).into_response()
                     }
                     Err(err) => {
@@ -269,7 +175,7 @@ pub fn create_models(input: TokenStream) -> TokenStream {
     let table_name = format!("{}", lower_case_name);
     
     let expanded = quote! {
-        #[derive(PartialEq, Deserialize, Serialize, Default, Properties, Clone, Reflect)]
+        #[derive(PartialEq, Deserialize, Serialize, Default, Properties, Clone, Reflect, Debug, Hash, Eq)]
         pub struct #modified_name_ui {
             #(#field_code)*
         }

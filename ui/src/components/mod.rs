@@ -1,8 +1,11 @@
-pub mod auth;
 pub mod home;
+pub mod navbar;
+pub mod auth;
 pub mod logout;
+pub mod login;
+pub mod messages;
+pub mod form_modal;
 pub mod crud;
-pub mod common;
+pub mod table;
 pub mod forms;
-pub mod app;
-pub mod main_menu;
+pub mod form;

@@ -1,6 +1,6 @@
 use axum::{extract::FromRequestParts, http::{header, request::Parts}};
 use async_trait::async_trait;
-use axum::response::{IntoResponse, Response};
+use axum::response::{Response};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use tracing::{event, Level};
 use regex::Regex;
@@ -50,8 +50,7 @@ pub struct BearerAuth;
 
 impl BearerAuth {
     fn default_error(msg: String) -> Response {
-        let error = ApiError {kind: ApiErrorType::Unauthorized, msg};
-        error.into_response()
+        ApiError::create_response(ApiErrorType::Unauthorized, msg)        
     }
 }
 
@@ -62,7 +61,7 @@ impl<S> FromRequestParts<S> for BearerAuth
 {
     type Rejection = Response;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
         let auth_header = parts
             .headers
             .get(header::AUTHORIZATION)
@@ -83,14 +82,14 @@ impl<S> FromRequestParts<S> for BearerAuth
                             }
                             Err(err) => {
                                 let err = format!("Error Decoding: {}", err);
-                                event!(Level::INFO, err);
+                                event!(Level::ERROR, err);
                                 Err(Self::default_error(err))
                             }
                         }
                     }
                     false => {
                         let err = format!("invalid bearer token: {}", value);
-                        event!(Level::INFO, err);
+                        event!(Level::ERROR, err);
                         Err(Self::default_error(err))
                     }
                 }
