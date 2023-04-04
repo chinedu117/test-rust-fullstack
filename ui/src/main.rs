@@ -5,7 +5,6 @@ mod components;
 mod services;
 mod routes;
 mod jsbinds;
-mod forms;
 
 use routes::{AppRouter, AppRouterProps};
 use components::navbar::{Navbar, NavbarProps};

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use super::traits::{FormFields, FormType};
 use macros::GenerateModels;
 use serde::{Deserialize, Serialize};
 use yew::Properties;
@@ -22,11 +20,3 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {} 
 
-impl FormFields for UserUi {
-    fn names_and_types() ->  std::collections::HashMap<String, FormType> {
-        let mut map: HashMap<String, FormType> = HashMap::new();
-        map.insert("name".to_string(), FormType::Input);
-        map.insert("service".to_string(), FormType::Input);
-        map
-    }
-}  
